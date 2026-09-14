@@ -5485,6 +5485,63 @@ applyTextScale();
 })();
 </script>
 
+<!-- Launch Reliability: navigation fallback + offline-safe visual fallback -->
+<style id="dunamis-launch-fixes">
+/* The canvas is an enhancement; the section must remain visible without it. */
+#heaven-canvas-wrap{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 72% 18%,rgba(255,255,255,.96) 0 7%,rgba(255,255,255,.38) 17%,transparent 31%),
+    linear-gradient(180deg,#79c8f0 0%,#c9eaff 48%,#f7e8c4 100%) !important;
+}
+#heaven-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+#heaven-canvas-wrap::before,
+#heaven-canvas-wrap::after{content:"";position:absolute;z-index:0;pointer-events:none;}
+#heaven-canvas-wrap::before{
+  width:170px;height:58px;left:8%;bottom:18px;border-radius:50%;
+  background:rgba(255,255,255,.58);filter:blur(10px);
+  box-shadow:115px -20px 0 12px rgba(255,255,255,.42),250px 6px 0 8px rgba(255,255,255,.48),420px -14px 0 10px rgba(255,255,255,.40);
+}
+#heaven-canvas-wrap::after{
+  width:96px;height:96px;left:50%;top:22px;transform:translateX(-50%);
+  border-radius:50%;background:radial-gradient(circle,rgba(255,250,207,.96) 0 16%,rgba(255,244,186,.45) 32%,transparent 70%);
+}
+.heaven-glow{z-index:2;}
+.heaven-caption{z-index:3;color:#16344a !important;text-shadow:0 2px 10px rgba(255,255,255,.85),0 1px 2px rgba(255,255,255,.75) !important;}
+.heaven-caption span{color:#214a61;opacity:.96;}
+.dark #heaven-canvas-wrap{background:linear-gradient(180deg,#123b52 0%,#245f79 50%,#143c48 100%) !important;}
+.dark .heaven-caption{color:#fff !important;text-shadow:0 2px 12px rgba(0,0,0,.75) !important;}
+.dark .heaven-caption span{color:#eef8ff;}
+/* Make navigation controls reliably clickable on touch and desktop. */
+.nav-item[data-page]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+</style>
+<script id="dunamis-navigation-fallback">
+(function(){
+  'use strict';
+  var titles={read:'Reader',search:'Search',plan:'Reading Plan',stats:'Stats',bookmarks:'Bookmarks',memory:'Memory Verses',journal:'Journal',prayer:'Prayer List',quiz:'Bible Quiz',devotional:'Daily Devotional',backup:'Backup & Restore',streak:'Streak',settings:'Settings'};
+  function fallbackNavigate(page){
+    var pageEl=document.getElementById('page-'+page);
+    if(!pageEl)return false;
+    document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+    document.querySelectorAll('.nav-item[data-page]').forEach(function(n){n.classList.toggle('active',n.getAttribute('data-page')===page);});
+    pageEl.classList.add('active');
+    var title=document.getElementById('page-title');
+    if(title)title.textContent=titles[page]||page;
+    var sb=document.getElementById('sidebar'), ov=document.getElementById('sidebar-overlay');
+    if(sb)sb.classList.remove('open'); if(ov)ov.classList.remove('open'); document.body.style.overflow='';
+    window.__dunamisCurrentPage=page;
+    return true;
+  }
+  window.__dunamisNavigate=fallbackNavigate;
+  document.addEventListener('click',function(e){
+    var item=e.target.closest && e.target.closest('.nav-item[data-page]');
+    if(!item)return;
+    var page=item.getAttribute('data-page');
+    if(page && !window.navigateTo){ e.preventDefault(); fallbackNavigate(page); }
+  },true);
+})();
+</script>
+
 <!-- Dunamis Privacy-First Analytics Tracker v1.0 -->
 <script>
 (function(){'use strict';var AN_KEY='dunamisAnalytics',MAX_EV=2000,FLUSH_MS=30000,SK='dunamis_an_sid';function uid(){try{return crypto.randomUUID()}catch(_){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}}function session(){var sid=sessionStorage.getItem(SK);if(!sid){sid=uid();sessionStorage.setItem(SK,sid)}return sid}function deviceType(){var ua=navigator.userAgent;if(/tablet|ipad/i.test(ua))return'tablet';if(/mobile|iphone|ipod|android/i.test(ua))return'mobile';return'desktop'}function tz(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone}catch(_){return'unknown'}}var _q=[],_t=null;function scheduleFlush(){if(_t)return;_t=setTimeout(function(){flush();_t=null},FLUSH_MS)}function flush(){if(!_q.length)return;var all=read();all.push.apply(all,_q);if(all.length>MAX_EV)all.splice(0,all.length-MAX_EV);try{localStorage.setItem(AN_KEY,JSON.stringify(all))}catch(_){if(_.name==='QuotaExceededError'||_.code===22){try{all.splice(0,Math.ceil(all.length/2));localStorage.setItem(AN_KEY,JSON.stringify(all))}catch(_2){}}}_q=[]}function read(){try{var r=localStorage.getItem(AN_KEY);return r?JSON.parse(r):[]}catch(_){return[]}}window.DunamisAnalytics={track:function(ev,meta){_q.push({id:uid(),ts:Date.now(),sid:session(),event:String(ev),meta:meta?JSON.parse(JSON.stringify(meta)):{}});scheduleFlush();if(/^(session_start|session_end)$/.test(ev))flush()},flush:flush,getEvents:read,pageView:function(p){this.track('page_view',{page:p})},bibleRead:function(b,c){this.track('bible_read',{book:b,chapter:c})},audioPlay:function(b,c){this.track('audio_play',{book:b,chapter:c})},audioStop:function(b,c,pos){this.track('audio_stop',{book:b,chapter:c,position:pos})},search:function(q,n){this.track('search',{query:q,resultCount:n})},devotionalView:function(id,t){this.track('devotional_view',{id:id,title:t})},bookmarkAdd:function(b,c){this.track('bookmark_add',{book:b,chapter:c})},memoryAdd:function(b,c,v){this.track('memory_add',{book:b,chapter:c,verse:v})},journalEntry:function(){this.track('journal_entry',{})},quizComplete:function(s){this.track('quiz_complete',{score:s})},planProgress:function(p,d){this.track('plan_progress',{plan:p,day:d})},settingsChange:function(k,v){this.track('settings_change',{key:k,value:v})},themeToggle:function(d){this.track('theme_toggle',{dark:d})},share:function(m){this.track('share',{method:m})},pwaInstall:function(){this.track('pwa_install',{})}};window.DunamisAnalytics.track('session_start',{device:deviceType(),tz:tz(),referrer:document.referrer||'direct',screen:screen.width+'x'+screen.height,lang:navigator.language});window.addEventListener('beforeunload',function(){window.DunamisAnalytics.track('session_end',{duration:Date.now()-performance.timing.navigationStart});flush()});var origNav=window.navigateTo;if(typeof origNav==='function'){window.navigateTo=function(page){window.DunamisAnalytics.pageView(page);return origNav.apply(this,arguments)}}var origSearch=window.runSearch;if(typeof origSearch==='function'){window.runSearch=function(){var si=document.getElementById('search-input');if(si)window.DunamisAnalytics.search(si.value,0);return origSearch.apply(this,arguments)}}var origAudio=window.playAudio;if(typeof origAudio==='function'){window.playAudio=function(book,chapter){window.DunamisAnalytics.audioPlay(book,chapter);return origAudio.apply(this,arguments)}}})();
